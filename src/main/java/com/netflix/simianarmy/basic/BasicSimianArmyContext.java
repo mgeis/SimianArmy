@@ -337,7 +337,6 @@ public class BasicSimianArmyContext implements Monkey.Context {
      * Load a class specified by the config; for drop-in replacements.
      * (Duplicates a method in MonkeyServer; refactor to util?).
      *
-     * @param config
      * @param key
      * @return The initialized class named by the key, or null if empty or not found
      */
