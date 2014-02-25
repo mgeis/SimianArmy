@@ -24,7 +24,7 @@ import org.testng.annotations.Test;
 public class TestBasicContext {
     @Test
     public void testContext() {
-        BasicChaosMonkeyContext ctx = new BasicChaosMonkeyContext();
+        BasicChaosMonkeyContext ctx = new com.netflix.simianarmy.aws.AWSChaosMonkeyContext();
         Assert.assertNotNull(ctx.scheduler());
         Assert.assertNotNull(ctx.calendar());
         Assert.assertNotNull(ctx.configuration());

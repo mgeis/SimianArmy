@@ -72,7 +72,7 @@ public class BasicMonkeyServer extends HttpServlet {
      * make the class of the chaos context object configurable.
      */
     @SuppressWarnings("rawtypes")
-    private Class chaosContextClass = com.netflix.simianarmy.basic.BasicChaosMonkeyContext.class;
+    private Class chaosContextClass = com.netflix.simianarmy.aws.AWSChaosMonkeyContext.class;
 
     /**
      * make the class of the chaos object configurable.
