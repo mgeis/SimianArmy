@@ -17,7 +17,6 @@
  */
 package com.netflix.simianarmy.basic;
 
-import com.netflix.simianarmy.MonkeyConfiguration;
 import com.netflix.simianarmy.basic.chaos.BasicChaosEmailNotifier;
 import com.netflix.simianarmy.basic.chaos.BasicChaosInstanceSelector;
 import com.netflix.simianarmy.chaos.ChaosCrawler;
@@ -47,8 +46,9 @@ public abstract class BasicChaosMonkeyContext extends BasicSimianArmyContext imp
     public BasicChaosMonkeyContext() {
         super("simianarmy.properties", "client.properties", "chaos.properties");
         setChaosInstanceSelector(new BasicChaosInstanceSelector());
-        MonkeyConfiguration cfg = configuration();
-        setChaosEmailNotifier(new BasicChaosEmailNotifier(cfg, null));
+        setChaosEmailNotifier(new BasicChaosEmailNotifier(configuration(), null));
+        //note that the ChaosCrawler is not assigned.  The assignment of the crawler
+        //is done in the concrete implementation's constructor
     }
 
     /** {@inheritDoc} */

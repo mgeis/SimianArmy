@@ -24,12 +24,8 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 
 import com.netflix.simianarmy.CloudClient;
 import com.netflix.simianarmy.Monkey;
@@ -38,14 +34,11 @@ import com.netflix.simianarmy.MonkeyConfiguration;
 import com.netflix.simianarmy.MonkeyRecorder;
 import com.netflix.simianarmy.MonkeyRecorder.Event;
 import com.netflix.simianarmy.MonkeyScheduler;
-import com.netflix.simianarmy.aws.SimpleDBRecorder;
-import com.netflix.simianarmy.aws.STSAssumeRoleSessionCredentialsProvider;
-import com.netflix.simianarmy.client.aws.AWSClient;
 
 /**
  * The Class BasicSimianArmyContext.
  */
-public class BasicSimianArmyContext implements Monkey.Context {
+public abstract class BasicSimianArmyContext implements Monkey.Context {
 
     /** The Constant LOGGER. */
     private static final Logger LOGGER = LoggerFactory.getLogger(BasicSimianArmyContext.class);
@@ -66,25 +59,13 @@ public class BasicSimianArmyContext implements Monkey.Context {
     private BasicConfiguration config;
 
     /** The client. */
-    private AWSClient client;
+    private CloudClient client;
 
     /** The recorder. */
     private MonkeyRecorder recorder;
 
     /** The reported events. */
     private final LinkedList<Event> eventReport;
-
-    /** The AWS credentials provider to be used. */
-    private AWSCredentialsProvider awsCredentialsProvider = new DefaultAWSCredentialsProviderChain();
-
-    /** If configured, the ARN of Role to be assumed. */
-    private final String assumeRoleArn;
-
-    private final String account;
-
-    private final String secret;
-
-    private final String region;
 
     /** protected constructor as the Shell is meant to be subclassed. */
     protected BasicSimianArmyContext(String... configFiles) {
@@ -101,21 +82,9 @@ public class BasicSimianArmyContext implements Monkey.Context {
         config = new BasicConfiguration(properties);
         calendar = new BasicCalendar(config);
 
-        account = config.getStr("simianarmy.client.aws.accountKey");
-        secret = config.getStr("simianarmy.client.aws.secretKey");
-        region = config.getStrOrElse("simianarmy.client.aws.region", "us-east-1");
-
-        assumeRoleArn = config.getStr("simianarmy.client.aws.assumeRoleArn");
-        if (assumeRoleArn != null) {
-            this.awsCredentialsProvider = new STSAssumeRoleSessionCredentialsProvider(assumeRoleArn);
-        }
-
-        // if credentials are set explicitly make them available to the AWS SDK
-        if (StringUtils.isNotBlank(account) && StringUtils.isNotBlank(secret)) {
-            this.exportCredentials(account, secret);
-        }
-
-        createClient();
+        //note that createClient() should be explicitly called in the subclass
+        //this is not done here because some member field initialization may
+        //need to happen first
 
         createScheduler();
 
@@ -141,61 +110,35 @@ public class BasicSimianArmyContext implements Monkey.Context {
         }
     }
 
-    private void createScheduler() {
+    /** Creates the scheduler that determines when the monkey will run.
+     * Can be overridden by subclass.
+     */
+    protected void createScheduler() {
         int freq = (int) config.getNumOrElse("simianarmy.scheduler.frequency", 1);
         TimeUnit freqUnit = TimeUnit.valueOf(config.getStrOrElse("simianarmy.scheduler.frequencyUnit", "HOURS"));
         int threads = (int) config.getNumOrElse("simianarmy.scheduler.threads", MONKEY_THREADS);
         setScheduler(new BasicScheduler(freq, freqUnit, threads));
     }
 
+    /** Creates the recorder that logs events.  Can be overridden by subclass.
+     * Default behavior is to look at the property file.
+     * If nothing is specified, use the LocalDbRecorder.
+     */
     @SuppressWarnings("unchecked")
-    private void createRecorder() {
+    protected void createRecorder() {
         @SuppressWarnings("rawtypes")
         Class recorderClass = loadClientClass("simianarmy.client.recorder.class");
-        if (recorderClass == null || recorderClass.equals(SimpleDBRecorder.class)) {
-            String domain = config.getStrOrElse("simianarmy.recorder.sdb.domain", "SIMIAN_ARMY");
-            if (client != null) {
-                SimpleDBRecorder simpleDbRecorder = new SimpleDBRecorder(client, domain);
-                simpleDbRecorder.init();
-                setRecorder(simpleDbRecorder);
-            }
-        } else {
-            setRecorder((MonkeyRecorder) factory(recorderClass));
+        if (recorderClass == null) {
+            recorderClass = LocalDbRecorder.class;
         }
+        setRecorder((MonkeyRecorder) factory(recorderClass));
     }
 
     /**
      * Create the specific client with region taken from properties.
      * Override to provide your own client.
      */
-    protected void createClient() {
-        createClient(region);
-    }
-
-    /**
-     * Create the specific client within passed region, using the appropriate AWS credentials provider.
-     * @param clientRegion
-     */
-    protected void createClient(String clientRegion) {
-        this.client = new AWSClient(clientRegion, awsCredentialsProvider);
-        setCloudClient(this.client);
-    }
-
-    /**
-     * Gets the AWS client.
-     * @return the AWS client
-     */
-    public AWSClient awsClient() {
-        return client;
-    }
-
-    /**
-     * Gets the region.
-     * @return the region
-     */
-    public String region() {
-        return region;
-    }
+    protected abstract void createClient();
 
     @Override
     public void reportEvent(Event evt) {
@@ -224,17 +167,6 @@ public class BasicSimianArmyContext implements Monkey.Context {
             report.append(")\n");
         }
         return report.toString();
-    }
-
-    /**
-     * Exports credentials as Java system properties
-     * to be picked up by AWS SDK clients.
-     * @param accountKey
-     * @param secretKey
-     */
-    public void exportCredentials(String accountKey, String secretKey) {
-        System.setProperty("aws.accessKeyId", accountKey);
-        System.setProperty("aws.secretKey", secretKey);
     }
 
     /** {@inheritDoc} */
@@ -298,7 +230,7 @@ public class BasicSimianArmyContext implements Monkey.Context {
      *            the new cloud client
      */
     protected void setCloudClient(CloudClient cloudClient) {
-        this.client = (AWSClient) cloudClient;
+        this.client = cloudClient;
     }
 
     /** {@inheritDoc} */
@@ -326,14 +258,6 @@ public class BasicSimianArmyContext implements Monkey.Context {
     }
 
     /**
-     * Gets the AWS credentials provider.
-     * @return the AWS credentials provider
-     */
-    public AWSCredentialsProvider getAwsCredentialsProvider() {
-        return awsCredentialsProvider;
-    }
-
-    /**
      * Load a class specified by the config; for drop-in replacements.
      * (Duplicates a method in MonkeyServer; refactor to util?).
      *
@@ -341,7 +265,7 @@ public class BasicSimianArmyContext implements Monkey.Context {
      * @return The initialized class named by the key, or null if empty or not found
      */
     @SuppressWarnings("rawtypes")
-    private Class loadClientClass(String key) {
+    protected Class loadClientClass(String key) {
         ClassLoader classLoader = getClass().getClassLoader();
         try {
             String clientClassName = config.getStrOrElse(key, null);
@@ -366,7 +290,7 @@ public class BasicSimianArmyContext implements Monkey.Context {
      *            the actual concrete type to instantiate.
      * @return an object of the requested type
      */
-    private <T> T factory(Class<T> implClass) {
+    protected <T> T factory(Class<T> implClass) {
         try {
             // then find corresponding ctor
             for (Constructor<?> ctor : implClass.getDeclaredConstructors()) {

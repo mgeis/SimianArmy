@@ -17,14 +17,73 @@
  */
 package com.netflix.simianarmy.aws;
 
+import com.netflix.simianarmy.MonkeyRecorder;
 import com.netflix.simianarmy.basic.BasicChaosMonkeyContext;
+import com.netflix.simianarmy.client.aws.AWSClient;
 import com.netflix.simianarmy.client.aws.chaos.ASGChaosCrawler;
 
+/** AWS specific context for Chaos Monkey.  Provides AWS-centric
+ * crawler and client, leaving basic chaos behavior to BasicChaosMonkeyContext.
+ * @author mgeis
+ *
+ */
 public class AWSChaosMonkeyContext extends BasicChaosMonkeyContext {
+    private final AWSContext awsContext;
 
+    /** Constructor.
+     *
+     */
     public AWSChaosMonkeyContext() {
         super();
+
+        awsContext = new AWSContext(configuration());
+        createClient();
         setChaosCrawler(new ASGChaosCrawler(awsClient()));
+    }
+
+    /**
+     * Exports credentials as Java system properties
+     * to be picked up by AWS SDK clients.
+     * @param accountKey
+     * @param secretKey
+     */
+    public void exportCredentials(String accountKey, String secretKey) {
+        System.setProperty("aws.accessKeyId", accountKey);
+        System.setProperty("aws.secretKey", secretKey);
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    protected void createRecorder() {
+        @SuppressWarnings("rawtypes")
+        Class recorderClass = loadClientClass("simianarmy.client.recorder.class");
+        if (recorderClass == null || recorderClass.equals(SimpleDBRecorder.class)) {
+            String domain = configuration().getStrOrElse("simianarmy.recorder.sdb.domain", "SIMIAN_ARMY");
+            if (cloudClient() != null && cloudClient().getClass() == AWSClient.class) {
+                SimpleDBRecorder simpleDbRecorder = new SimpleDBRecorder(awsClient(), domain);
+                simpleDbRecorder.init();
+                setRecorder(simpleDbRecorder);
+            }
+        } else {
+            setRecorder((MonkeyRecorder) factory(recorderClass));
+        }
+    }
+
+    /**
+     * Create the specific client with region taken from properties.
+     * Override to provide your own client.
+     */
+    @Override
+    protected void createClient() {
+        setCloudClient(new AWSClient(awsContext.region(), awsContext.getAwsCredentialsProvider()));
+    }
+
+    /**
+     * Gets the AWS client.
+     * @return the AWS client
+     */
+    public AWSClient awsClient() {
+        return (AWSClient) cloudClient();
     }
 
 }

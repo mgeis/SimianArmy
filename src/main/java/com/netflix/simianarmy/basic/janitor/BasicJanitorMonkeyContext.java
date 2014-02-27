@@ -22,6 +22,7 @@ import com.netflix.discovery.DiscoveryManager;
 import com.netflix.simianarmy.MonkeyCalendar;
 import com.netflix.simianarmy.MonkeyConfiguration;
 import com.netflix.simianarmy.MonkeyRecorder;
+import com.netflix.simianarmy.aws.AWSContext;
 import com.netflix.simianarmy.aws.janitor.ASGJanitor;
 import com.netflix.simianarmy.aws.janitor.EBSSnapshotJanitor;
 import com.netflix.simianarmy.aws.janitor.EBSVolumeJanitor;
@@ -52,6 +53,7 @@ import com.netflix.simianarmy.aws.janitor.rule.snapshot.NoGeneratedAMIRule;
 import com.netflix.simianarmy.aws.janitor.rule.volume.DeleteOnTerminationRule;
 import com.netflix.simianarmy.aws.janitor.rule.volume.OldDetachedVolumeRule;
 import com.netflix.simianarmy.basic.BasicSimianArmyContext;
+import com.netflix.simianarmy.client.aws.AWSClient;
 import com.netflix.simianarmy.client.edda.EddaClient;
 import com.netflix.simianarmy.janitor.AbstractJanitor;
 import com.netflix.simianarmy.janitor.JanitorCrawler;
@@ -103,11 +105,15 @@ public class BasicJanitorMonkeyContext extends BasicSimianArmyContext implements
 
     private final int daysBeforeTermination;
 
+    private final AWSContext awsContext;
+
     /**
      * The constructor.
      */
     public BasicJanitorMonkeyContext() {
         super("simianarmy.properties", "client.properties", "janitor.properties");
+
+        awsContext = new AWSContext(configuration());
 
         monkeyRegion = region();
         monkeyCalendar = calendar();
@@ -196,6 +202,27 @@ public class BasicJanitorMonkeyContext extends BasicSimianArmyContext implements
                 monkeyRegion, ruleEngine, crawler, janitorResourceTracker,
                 monkeyCalendar, configuration(), recorder());
         return new ASGJanitor(awsClient(), asgJanitorCtx);
+    }
+
+    /**
+     * Gets the AWS client.
+     * @return the AWS client
+     */
+    public AWSClient awsClient() {
+        return (AWSClient) cloudClient();
+    }
+
+    /**
+     * Create the specific client with region taken from properties.
+     * Override to provide your own client.
+     */
+    protected void createClient() {
+        setCloudClient(new AWSClient(awsContext.region(), awsContext.getAwsCredentialsProvider()));
+    }
+
+    @Override
+    public String region() {
+        return awsContext.region();
     }
 
     private InstanceJanitor getInstanceJanitor() {
@@ -476,4 +503,5 @@ public class BasicJanitorMonkeyContext extends BasicSimianArmyContext implements
             return recorder;
         }
     }
+
 }
