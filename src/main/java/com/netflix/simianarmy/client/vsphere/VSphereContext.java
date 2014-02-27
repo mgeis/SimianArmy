@@ -16,14 +16,14 @@
 package com.netflix.simianarmy.client.vsphere;
 
 import com.netflix.simianarmy.MonkeyConfiguration;
-import com.netflix.simianarmy.basic.BasicChaosMonkeyContext;
+import com.netflix.simianarmy.aws.AWSChaosMonkeyContext;
 
 /**
  * This Context extends the BasicContext in order to provide a different client: the VSphereClient.
  *
  * @author ingmar.krusch@immobilienscout24.de
  */
-public class VSphereContext extends BasicChaosMonkeyContext {
+public class VSphereContext extends AWSChaosMonkeyContext {
     @Override
     protected void createClient() {
         MonkeyConfiguration config = configuration();

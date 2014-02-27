@@ -22,6 +22,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.netflix.discovery.DiscoveryClient;
 import com.netflix.discovery.DiscoveryManager;
+import com.netflix.simianarmy.aws.AWSContext;
 import com.netflix.simianarmy.aws.conformity.SimpleDBConformityClusterTracker;
 import com.netflix.simianarmy.aws.conformity.crawler.AWSClusterCrawler;
 import com.netflix.simianarmy.aws.conformity.rule.BasicConformityEurekaClient;
@@ -80,6 +81,8 @@ public class BasicConformityMonkeyContext extends BasicSimianArmyContext impleme
 
     private final boolean leashed;
 
+    private final AWSContext awsContext;
+
     private final Map<String, AWSClient> regionToAwsClient = Maps.newHashMap();
 
     /**
@@ -87,7 +90,9 @@ public class BasicConformityMonkeyContext extends BasicSimianArmyContext impleme
      */
     public BasicConformityMonkeyContext() {
         super("simianarmy.properties", "client.properties", "conformity.properties");
-        regions = Lists.newArrayList(region());
+        awsContext = new AWSContext(configuration());
+
+        regions = Lists.newArrayList(awsContext.region());
 
         // By default, the monkey is leashed
         leashed = configuration().getBoolOrElse("simianarmy.conformity.leashed", true);
@@ -126,7 +131,7 @@ public class BasicConformityMonkeyContext extends BasicSimianArmyContext impleme
             String requiredSecurityGroups = configuration().getStr(
                     "simianarmy.conformity.rule.InstanceInSecurityGroup.requiredSecurityGroups");
             if (!StringUtils.isBlank(requiredSecurityGroups)) {
-                ruleEngine.addRule(new InstanceInSecurityGroup(getAwsCredentialsProvider(),
+                ruleEngine.addRule(new InstanceInSecurityGroup(awsContext.getAwsCredentialsProvider(),
                         StringUtils.split(requiredSecurityGroups, ",")));
             } else {
                 LOGGER.info("No required security groups is specified, "
@@ -134,24 +139,22 @@ public class BasicConformityMonkeyContext extends BasicSimianArmyContext impleme
             }
         }
 
-        if (configuration().getBoolOrElse(
-                "simianarmy.conformity.rule.InstanceTooOld.enabled", false)) {
-                ruleEngine.addRule(new InstanceTooOld(getAwsCredentialsProvider(), (int) configuration().getNumOrElse(
-                        "simianarmy.conformity.rule.InstanceTooOld.instanceAgeThreshold", 180)));
+        if (configuration().getBoolOrElse("simianarmy.conformity.rule.InstanceTooOld.enabled", false)) {
+            ruleEngine.addRule(new InstanceTooOld(awsContext.getAwsCredentialsProvider(),
+                (int) configuration().getNumOrElse(
+                    "simianarmy.conformity.rule.InstanceTooOld.instanceAgeThreshold", 180)));
         }
 
-        if (configuration().getBoolOrElse(
-                "simianarmy.conformity.rule.SameZonesInElbAndAsg.enabled", false)) {
-            ruleEngine().addRule(new SameZonesInElbAndAsg(getAwsCredentialsProvider()));
+        if (configuration().getBoolOrElse("simianarmy.conformity.rule.SameZonesInElbAndAsg.enabled", false)) {
+            ruleEngine().addRule(new SameZonesInElbAndAsg(awsContext.getAwsCredentialsProvider()));
         }
 
-        if (configuration().getBoolOrElse(
-                "simianarmy.conformity.rule.InstanceInVPC.enabled", false)) {
-                ruleEngine.addRule(new InstanceInVPC(getAwsCredentialsProvider()));
+        if (configuration().getBoolOrElse("simianarmy.conformity.rule.InstanceInVPC.enabled", false)) {
+                ruleEngine.addRule(new InstanceInVPC(awsContext.getAwsCredentialsProvider()));
         }
 
-        createClient(region());
-        regionToAwsClient.put(region(), awsClient());
+        createClient();
+        regionToAwsClient.put(awsContext.region(), awsClient());
 
         clusterCrawler = new AWSClusterCrawler(regionToAwsClient, configuration());
         sesClient = new AmazonSimpleEmailServiceClient();
@@ -161,6 +164,14 @@ public class BasicConformityMonkeyContext extends BasicSimianArmyContext impleme
         sourceEmail = configuration().getStrOrElse("simianarmy.conformity.notification.sourceEmail", null);
         conformityEmailBuilder = new BasicConformityEmailBuilder();
         emailNotifier = new ConformityEmailNotifier(getConformityEmailNotifierContext());
+    }
+
+    /**
+     * Gets the AWS client.
+     * @return the AWS client
+     */
+    public AWSClient awsClient() {
+        return (AWSClient) cloudClient();
     }
 
     public ConformityEmailNotifier.Context getConformityEmailNotifierContext() {
@@ -246,5 +257,10 @@ public class BasicConformityMonkeyContext extends BasicSimianArmyContext impleme
     @Override
     public ConformityClusterTracker clusterTracker() {
         return clusterTracker;
+    }
+
+    @Override
+    protected void createClient() {
+        setCloudClient(new AWSClient(awsContext.region(), awsContext.getAwsCredentialsProvider()));
     }
 }
