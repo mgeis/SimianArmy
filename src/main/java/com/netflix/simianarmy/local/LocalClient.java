@@ -1,4 +1,4 @@
-package com.salesforce.simianarmy.client;
+package com.netflix.simianarmy.local;
 
 import java.util.List;
 import java.util.Map;
@@ -13,10 +13,9 @@ import org.jclouds.ssh.jsch.JschSshClient;
 import com.google.common.net.HostAndPort;
 import com.netflix.simianarmy.CloudClient;
 
-public class SalesforceClient implements CloudClient {
-
+public class LocalClient implements CloudClient {
     
-    public SalesforceClient(String region) {
+    public LocalClient() {
         super();
     }
 
