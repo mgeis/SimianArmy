@@ -17,15 +17,15 @@ import com.netflix.simianarmy.MonkeyConfiguration;
  */
 public abstract class BasicEmailClient implements EmailClient {
     private static final Logger LOGGER = LoggerFactory.getLogger(BasicEmailClient.class);
-    private static final String EMAIL_PATTERN =
+    private static final String EMAIL_PATTERN_REGEX =
             "^[_A-Za-z0-9-\\+]+(\\.[_A-Za-z0-9-]+)*@"
                     + "[A-Za-z0-9-]+(\\.[A-Za-z0-9]+)*(\\.[A-Za-z]{2,})$";
 
-    private static final Pattern emailPattern;
+    private static final Pattern EMAIL_PATTERN;
     private final MonkeyConfiguration cfg;
 
     static {
-        emailPattern = Pattern.compile(EMAIL_PATTERN);
+        EMAIL_PATTERN = Pattern.compile(EMAIL_PATTERN_REGEX);
     }
 
     /**
@@ -101,7 +101,7 @@ public abstract class BasicEmailClient implements EmailClient {
         if (email == null) {
             return false;
         }
-        if (!emailPattern.matcher(email).matches()) {
+        if (!EMAIL_PATTERN.matcher(email).matches()) {
             LOGGER.error(String.format("Invalid email address: %s", email));
             return false;
         }
