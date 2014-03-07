@@ -52,6 +52,7 @@ public class AWSChaosMonkeyContext extends BasicChaosMonkeyContext {
         System.setProperty("aws.secretKey", secretKey);
     }
 
+    /** {@inheritDoc} */
     @Override
     @SuppressWarnings("unchecked")
     protected void createRecorder() {
