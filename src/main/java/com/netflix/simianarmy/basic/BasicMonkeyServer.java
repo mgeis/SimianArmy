@@ -19,6 +19,7 @@ package com.netflix.simianarmy.basic;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Map;
 import java.util.Properties;
 
 import javax.servlet.ServletException;
@@ -27,7 +28,18 @@ import javax.servlet.http.HttpServlet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Maps;
+import com.netflix.simianarmy.Monkey;
+import com.netflix.simianarmy.Monkey.Context;
 import com.netflix.simianarmy.MonkeyRunner;
+import com.netflix.simianarmy.MonkeyType;
+import com.netflix.simianarmy.basic.chaos.BasicChaosMonkey;
+import com.netflix.simianarmy.janitor.JanitorMonkey;
+
+import static com.netflix.simianarmy.chaos.ChaosMonkey.Type.CHAOS;
+import static com.netflix.simianarmy.janitor.JanitorMonkey.Type.JANITOR;
+import static com.netflix.simianarmy.aws.janitor.VolumeTaggingMonkey.Type.VOLUME_TAGGING;
+import static com.netflix.simianarmy.conformity.ConformityMonkey.Type.CONFORMITY;
 
 /**
  * Will periodically run the configured monkeys.
@@ -37,90 +49,29 @@ public class BasicMonkeyServer extends HttpServlet {
     private static final Logger LOGGER = LoggerFactory.getLogger(BasicMonkeyServer.class);
 
     private static final MonkeyRunner RUNNER = MonkeyRunner.getInstance();
+    private static final Map<MonkeyType, Class<? extends Monkey>> MONKEY_IMPL_MAP = Maps.newHashMap();
+    private static final Map<MonkeyType, Class<? extends Context>> MONKEY_CONTEXT_IMPL_MAP = Maps.newHashMap();
 
     /**
      * Add the monkeys that will be run.
      */
-    @SuppressWarnings("unchecked")
     public void addMonkeysToRun() {
-        LOGGER.info("Adding Chaos Monkey.");
-        RUNNER.replaceMonkey(this.chaosClass, this.chaosContextClass);
+        addMonkeyToRun(CHAOS, "Volume Tagging");
+        addMonkeyToRun(VOLUME_TAGGING, "Chaos");
+        addMonkeyToRun(CONFORMITY, "Conformity");
+        addMonkeyToRun(JANITOR, "Janitor");
+    }
 
-        if (this.volumeTaggingClass != null) {
-            LOGGER.info("Adding Volume Tagging Monkey.");
-            RUNNER.replaceMonkey(this.volumeTaggingClass, this.volumeTaggingContextClass);
+    private void addMonkeyToRun(MonkeyType type, String name) {
+        Class<? extends Monkey> monkeyClass = MONKEY_IMPL_MAP.get(type);
+        if (monkeyClass != null) {
+            LOGGER.info("Adding " + name + " Monkey.");
+            RUNNER.replaceMonkey(monkeyClass, MONKEY_CONTEXT_IMPL_MAP.get(type));
         } else {
-            LOGGER.info("Skipping Volume Tagging Monkey.");
-        }
-
-        if (this.conformityClass != null) {
-            LOGGER.info("Adding Conformity Monkey.");
-            RUNNER.replaceMonkey(this.conformityClass, this.conformityContextClass);
-        } else {
-            LOGGER.info("Skipping Conformity Monkey.");
-        }
-
-        if (this.janitorClass != null) {
-            LOGGER.info("Adding Janitor Monkey.");
-            RUNNER.replaceMonkey(this.janitorClass, this.janitorContextClass);
-        } else {
-            LOGGER.info("Skipping Janitor Monkey.");
+            LOGGER.info("Skipping " + name + " Monkey.");
         }
     }
 
-    /**
-     * make the class of the chaos context object configurable.
-     */
-    @SuppressWarnings("rawtypes")
-    private Class chaosContextClass = com.netflix.simianarmy.basic.BasicChaosMonkeyContext.class;
-
-    /**
-     * make the class of the chaos object configurable.
-     */
-    @SuppressWarnings("rawtypes")
-    private Class chaosClass = com.netflix.simianarmy.basic.chaos.BasicChaosMonkey.class;
-
-    /**
-     * make the class of the conformity context object configurable.
-     */
-    @SuppressWarnings("rawtypes")
-    private Class conformityContextClass = null;
-    // default is com.netflix.simianarmy.basic.conformity.BasicConformityMonkeyContext.class;
-
-    /**
-     * make the class of the conformity object configurable.
-     */
-    @SuppressWarnings("rawtypes")
-    private Class conformityClass = null;
-    // default is com.netflix.simianarmy.basic.conformity.BasicConformityMonkey.class;
-
-    /**
-     * make the class of the janitor context object configurable.
-     */
-    @SuppressWarnings("rawtypes")
-    private Class janitorContextClass = null;
-    // default is com.netflix.simianarmy.basic.janitor.BasicJanitorMonkeyContext.class;
-
-    /**
-     * make the class of the janitor object configurable.
-     */
-    @SuppressWarnings("rawtypes")
-    private Class janitorClass = null;
-    // default is com.netflix.simianarmy.basic.janitor.BasicJanitorMonkey.class;
-
-    /**
-     * make the class of the volume tagging context object configurable.
-     */
-    @SuppressWarnings("rawtypes")
-    private Class volumeTaggingContextClass = null;
-    // default is com.netflix.simianarmy.basic.janitor.BasicVolumeTaggingMonkeyContext.class;
-
-    /**
-     * make the class of the volume tagging object configurable.
-     */
-    @SuppressWarnings("rawtypes")
-    private Class volumeTaggingClass = null;
-    // default is com.netflix.simianarmy.aws.janitor.VolumeTaggingMonkey.class;
 
     @Override
     public void init() throws ServletException {
@@ -136,24 +87,32 @@ public class BasicMonkeyServer extends HttpServlet {
      * @throws ServletException
      *             if the configured client cannot be loaded properly
      */
-    @SuppressWarnings("rawtypes")
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     private void configureClient() throws ServletException {
         Properties clientConfig = loadClientConfigProperties();
 
         Class newContextClass = loadClientClass(clientConfig, "simianarmy.client.context.class");
-        this.chaosContextClass = (newContextClass == null ? this.chaosContextClass : newContextClass);
+        MONKEY_CONTEXT_IMPL_MAP.put(CHAOS, newContextClass == null ? BasicChaosMonkeyContext.class : newContextClass);
 
         Class newChaosClass = loadClientClass(clientConfig, "simianarmy.client.chaos.class");
-        this.chaosClass = (newChaosClass == null ? this.chaosClass : newChaosClass);
+        MONKEY_IMPL_MAP.put(CHAOS, newChaosClass == null ? BasicChaosMonkey.class : newChaosClass);
 
-        this.conformityContextClass = loadClientClass(clientConfig, "simianarmy.client.conformity.context.class");
-        this.conformityClass = loadClientClass(clientConfig, "simianarmy.client.conformity.class");
+        Class conformityContextClass = loadClientClass(clientConfig, "simianarmy.client.conformity.context.class");
+        MONKEY_CONTEXT_IMPL_MAP.put(CONFORMITY, conformityContextClass);
+        Class conformityClass = loadClientClass(clientConfig, "simianarmy.client.conformity.class");
+        MONKEY_IMPL_MAP.put(CONFORMITY, conformityClass);
 
-        this.volumeTaggingContextClass = loadClientClass(clientConfig, "simianarmy.client.volumeTagging.context.class");
-        this.volumeTaggingClass = loadClientClass(clientConfig, "simianarmy.client.volumeTagging.class");
+        Class volumeTaggingContextClass = 
+            loadClientClass(clientConfig, "simianarmy.client.volumeTagging.context.class");
+        MONKEY_CONTEXT_IMPL_MAP.put(VOLUME_TAGGING, volumeTaggingContextClass);
+        Class volumeTaggingClass = loadClientClass(clientConfig, "simianarmy.client.volumeTagging.class");
+        MONKEY_IMPL_MAP.put(VOLUME_TAGGING, volumeTaggingClass);
 
-        this.janitorContextClass = loadClientClass(clientConfig, "simianarmy.client.janitor.context.class");
-        this.janitorClass = loadClientClass(clientConfig, "simianarmy.client.janitor.class");
+        Class janitorContextClass = loadClientClass(clientConfig, "simianarmy.client.janitor.context.class");
+        MONKEY_CONTEXT_IMPL_MAP.put(JanitorMonkey.Type.JANITOR, janitorContextClass);
+        Class janitorClass = loadClientClass(clientConfig, "simianarmy.client.janitor.class");
+        MONKEY_IMPL_MAP.put(JanitorMonkey.Type.JANITOR, janitorClass);
+
     }
 
     @SuppressWarnings("rawtypes")
@@ -202,18 +161,17 @@ public class BasicMonkeyServer extends HttpServlet {
         }
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public void destroy() {
         RUNNER.stop();
         LOGGER.info("Stopping Chaos Monkey.");
-        RUNNER.removeMonkey(this.chaosClass);
+        RUNNER.removeMonkey(MONKEY_IMPL_MAP.get(CHAOS));
         LOGGER.info("Stopping volume tagging Monkey.");
-        RUNNER.removeMonkey(this.volumeTaggingClass);
+        RUNNER.removeMonkey(MONKEY_IMPL_MAP.get(VOLUME_TAGGING));
         LOGGER.info("Stopping Janitor Monkey.");
-        RUNNER.removeMonkey(this.janitorClass);
+        RUNNER.removeMonkey(MONKEY_IMPL_MAP.get(JanitorMonkey.Type.JANITOR));
         LOGGER.info("Stopping Conformity Monkey.");
-        RUNNER.removeMonkey(this.conformityClass);
+        RUNNER.removeMonkey(MONKEY_IMPL_MAP.get(CONFORMITY));
         super.destroy();
     }
 }
