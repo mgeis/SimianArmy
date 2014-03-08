@@ -87,8 +87,6 @@ public class BasicJanitorMonkeyContext extends BasicSimianArmyContext implements
     /** The janitors. */
     private final List<AbstractJanitor> janitors;
 
-    private final String monkeyRegion;
-
     private final MonkeyCalendar monkeyCalendar;
 
     private final AmazonSimpleEmailServiceClient sesClient;
@@ -115,7 +113,6 @@ public class BasicJanitorMonkeyContext extends BasicSimianArmyContext implements
 
         awsContext = new AWSContext(configuration());
 
-        monkeyRegion = region();
         monkeyCalendar = calendar();
 
         String resourceDomain = configuration().getStrOrElse("simianarmy.janitor.resources.sdb.domain", "SIMIAN_ARMY");
@@ -199,7 +196,7 @@ public class BasicJanitorMonkeyContext extends BasicSimianArmyContext implements
             crawler = new ASGJanitorCrawler(awsClient());
         }
         BasicJanitorContext asgJanitorCtx = new BasicJanitorContext(
-                monkeyRegion, ruleEngine, crawler, janitorResourceTracker,
+                region(), ruleEngine, crawler, janitorResourceTracker,
                 monkeyCalendar, configuration(), recorder());
         return new ASGJanitor(awsClient(), asgJanitorCtx);
     }
@@ -244,7 +241,7 @@ public class BasicJanitorMonkeyContext extends BasicSimianArmyContext implements
             instanceCrawler = new InstanceJanitorCrawler(awsClient());
         }
         BasicJanitorContext instanceJanitorCtx = new BasicJanitorContext(
-                monkeyRegion, ruleEngine, instanceCrawler, janitorResourceTracker,
+                region(), ruleEngine, instanceCrawler, janitorResourceTracker,
                 monkeyCalendar, configuration(), recorder());
         return new InstanceJanitor(awsClient(), instanceJanitorCtx);
     }
@@ -272,7 +269,7 @@ public class BasicJanitorMonkeyContext extends BasicSimianArmyContext implements
         }
 
         BasicJanitorContext volumeJanitorCtx = new BasicJanitorContext(
-                monkeyRegion, ruleEngine, volumeCrawler, janitorResourceTracker,
+                region(), ruleEngine, volumeCrawler, janitorResourceTracker,
                 monkeyCalendar, configuration(), recorder());
         return new EBSVolumeJanitor(awsClient(), volumeJanitorCtx);
     }
@@ -294,7 +291,7 @@ public class BasicJanitorMonkeyContext extends BasicSimianArmyContext implements
             snapshotCrawler = new EBSSnapshotJanitorCrawler(awsClient());
         }
         BasicJanitorContext snapshotJanitorCtx = new BasicJanitorContext(
-                monkeyRegion, ruleEngine, snapshotCrawler, janitorResourceTracker,
+                region(), ruleEngine, snapshotCrawler, janitorResourceTracker,
                 monkeyCalendar, configuration(), recorder());
         return new EBSSnapshotJanitor(awsClient(), snapshotJanitorCtx);
     }
@@ -316,7 +313,7 @@ public class BasicJanitorMonkeyContext extends BasicSimianArmyContext implements
             crawler = new LaunchConfigJanitorCrawler(awsClient());
         }
         BasicJanitorContext janitorCtx = new BasicJanitorContext(
-                monkeyRegion, ruleEngine, crawler, janitorResourceTracker,
+                region(), ruleEngine, crawler, janitorResourceTracker,
                 monkeyCalendar, configuration(), recorder());
         return new LaunchConfigJanitor(awsClient(), janitorCtx);
     }
@@ -342,7 +339,7 @@ public class BasicJanitorMonkeyContext extends BasicSimianArmyContext implements
         }
 
         BasicJanitorContext janitorCtx = new BasicJanitorContext(
-                monkeyRegion, ruleEngine, crawler, janitorResourceTracker,
+                region(), ruleEngine, crawler, janitorResourceTracker,
                 monkeyCalendar, configuration(), recorder());
         return new ImageJanitor(awsClient(), janitorCtx);
     }
@@ -384,7 +381,7 @@ public class BasicJanitorMonkeyContext extends BasicSimianArmyContext implements
 
             @Override
             public String region() {
-                return monkeyRegion;
+                return region();
             }
 
             @Override

@@ -52,7 +52,10 @@ public class AWSChaosMonkeyContext extends BasicChaosMonkeyContext {
         System.setProperty("aws.secretKey", secretKey);
     }
 
-    /** {@inheritDoc} */
+    /** Creates the recorder that logs events.  Can be overridden by subclass.
+     * Default behavior is to look at the property file.
+     * If nothing is specified, use the SimpleDBRecorder.
+     */
     @Override
     @SuppressWarnings("unchecked")
     protected void createRecorder() {
