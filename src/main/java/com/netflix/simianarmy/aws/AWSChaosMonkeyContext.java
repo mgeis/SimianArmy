@@ -41,6 +41,23 @@ public class AWSChaosMonkeyContext extends BasicChaosMonkeyContext {
         setChaosCrawler(new ASGChaosCrawler(awsClient()));
     }
 
+
+    /**
+     * Exports credentials as Java system properties
+     * to be picked up by AWS SDK clients.
+     * @param accountKey
+     * @param secretKey
+     */
+    public void exportCredentials(String accountKey, String secretKey) {
+        System.setProperty("aws.accessKeyId", accountKey);
+        System.setProperty("aws.secretKey", secretKey);
+    }
+
+    /** Creates the recorder that logs events.  Can be overridden by subclass.
+     * Default behavior is to look at the property file.
+     * If nothing is specified, use the SimpleDBRecorder.
+     */
+
     @Override
     @SuppressWarnings("unchecked")
     protected void createRecorder() {
