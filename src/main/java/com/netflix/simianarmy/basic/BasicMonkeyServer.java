@@ -101,7 +101,7 @@ public class BasicMonkeyServer extends HttpServlet {
         Class conformityClass = loadClientClass(clientConfig, "simianarmy.client.conformity.class");
         MONKEY_IMPL_MAP.put(CONFORMITY, conformityClass);
 
-        Class volumeTaggingContextClass = 
+        Class volumeTaggingContextClass =
             loadClientClass(clientConfig, "simianarmy.client.volumeTagging.context.class");
         MONKEY_CONTEXT_IMPL_MAP.put(VOLUME_TAGGING, volumeTaggingContextClass);
         Class volumeTaggingClass = loadClientClass(clientConfig, "simianarmy.client.volumeTagging.class");

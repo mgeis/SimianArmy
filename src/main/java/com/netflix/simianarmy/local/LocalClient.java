@@ -1,5 +1,6 @@
 package com.netflix.simianarmy.local;
 
+import java.lang.reflect.Constructor;
 import java.util.List;
 import java.util.Map;
 
@@ -9,19 +10,101 @@ import org.jclouds.http.handlers.BackoffLimitedRetryHandler;
 import org.jclouds.proxy.ProxyConfig;
 import org.jclouds.ssh.SshClient;
 import org.jclouds.ssh.jsch.JschSshClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.net.HostAndPort;
 import com.netflix.simianarmy.CloudClient;
+import com.netflix.simianarmy.chaos.ChaosCrawler.InstanceGroup;
 
 public class LocalClient implements CloudClient {
-    
-    public LocalClient() {
+
+    /** The Constant LOGGER. */
+    private static final Logger LOGGER = LoggerFactory.getLogger(LocalClient.class);
+
+    private InstanceCatalog catalog;
+
+    public LocalClient(LocalContext localContext) {
         super();
+        catalog = factory(localContext.instanceCatalogClass, localContext.getInstanceCatalogLocation());
     }
+
+    public <T extends InstanceCatalog> T factory(Class<T> catalogClass, String location) {
+        try {
+            if (location == null) {
+                // assume InstanceCatalog class has has void ctor
+                return catalogClass.newInstance();
+            }
+
+            // then find corresponding ctor
+            for (Constructor<?> ctor : catalogClass.getDeclaredConstructors()) {
+                Class<?>[] paramTypes = ctor.getParameterTypes();
+                if (paramTypes.length != 1) {
+                    continue;
+                }
+                @SuppressWarnings("unchecked")
+                T catalog = (T) ctor.newInstance(location);
+                return catalog;
+            }
+        } catch (Exception e) {
+            LOGGER.error("monkeyFactory error, cannot make instance catalog from " + catalogClass.getName() + " with "
+                    + (location == null ? null : location), e);
+        }
+
+        return null;
+    }
+
 
     @Override
     public void terminateInstance(String instanceId) {
         // TODO IMPLEMENT THIS
+    }
+
+    @Override
+    public SshClient connectSsh(String instanceId, LoginCredentials credentials) {
+        // TODO IMPLEMENT THIS, but maybe not as jclouds ssh.  Nice to have,
+        //as it's a clean abstraction, but that might not be possible.  need to research
+        //instance id can be an id of an object that wraps metadata about a server
+
+        ProxyConfig pc = null;
+        BackoffLimitedRetryHandler blrh = null;
+        HostAndPort hap = HostAndPort.fromString("");//TODO fill in hostname, port here
+        LoginCredentials lc = LoginCredentials.builder().user("sfdc_ops").noPassword().privateKey("").build();
+        SshClient ssh = new JschSshClient(pc, blrh, hap, lc, 3000);
+        ssh.connect();
+
+        return ssh;
+    }
+
+    /**
+     * Describe auto scaling groups.
+     *
+     * @return the list
+     */
+    public List<InstanceGroup> describeInstanceGroups() {
+        return describeInstanceGroups((String[]) null);
+    }
+
+    /**
+     * Describe a set of specific auto scaling groups.
+     *
+     * @param names the ASG names
+     * @return the auto scaling groups
+     */
+    public List<InstanceGroup> describeInstanceGroups(String... names) {
+        if (names == null || names.length == 0) {
+            LOGGER.info("Getting all instance groups.");
+        } else {
+            LOGGER.info(String.format("Getting auto-scaling groups for %d names.", names.length));
+        }
+
+        //now query the instance catalog
+        //interface instance catalog,
+        //jsonfileinstancecatalog, jsonrestfulcatalog
+
+        List<InstanceGroup> isgs = catalog.instanceGroups();
+        LOGGER.info(String.format("Got %d instance groups.", isgs.size()));
+        return isgs;
     }
 
     @Override
@@ -72,22 +155,6 @@ public class LocalClient implements CloudClient {
     @Override
     public String getJcloudsId(String instanceId) {
         throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public SshClient connectSsh(String instanceId, LoginCredentials credentials) {
-        // TODO IMPLEMENT THIS, but maybe not as jclouds ssh.  Nice to have,
-        //as it's a clean abstraction, but that might not be possible.  need to research
-        //instance id can be an id of an object that wraps metadata about a server
-        
-        ProxyConfig pc = null;
-        BackoffLimitedRetryHandler blrh = null;
-        HostAndPort hap = HostAndPort.fromString("");//TODO fill in hostname, port here
-        LoginCredentials lc = LoginCredentials.builder().user("sfdc_ops").noPassword().privateKey("").build();
-        SshClient ssh = new JschSshClient(pc, blrh, hap, lc, 3000);
-        ssh.connect();
-
-        return ssh;
     }
 
     @Override

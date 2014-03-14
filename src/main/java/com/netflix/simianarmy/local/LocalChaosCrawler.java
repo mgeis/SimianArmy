@@ -18,15 +18,10 @@
 package com.netflix.simianarmy.local;
 
 import java.util.EnumSet;
-import java.util.LinkedList;
 import java.util.List;
 
-import com.amazonaws.services.autoscaling.model.AutoScalingGroup;
-import com.amazonaws.services.autoscaling.model.Instance;
 import com.netflix.simianarmy.GroupType;
-import com.netflix.simianarmy.basic.chaos.BasicInstanceGroup;
 import com.netflix.simianarmy.chaos.ChaosCrawler;
-import com.netflix.simianarmy.client.aws.AWSClient;
 
 /**
  * The Class LocalChaosCrawler. This will crawl for all available clusters associated with the application.
@@ -69,14 +64,6 @@ public class LocalChaosCrawler implements ChaosCrawler {
 
     @Override
     public List<InstanceGroup> groups(String... names) {
-        List<InstanceGroup> list = new LinkedList<InstanceGroup>();
-        for (AutoScalingGroup asg : localClient.describeAutoScalingGroups(names)) {
-            InstanceGroup ig = new BasicInstanceGroup(asg.getAutoScalingGroupName(), Types.LOCAL, null);
-            for (Instance inst : asg.getInstances()) {
-                ig.addInstance(inst.getInstanceId());
-            }
-            list.add(ig);
-        }
-        return list;
+        return localClient.describeInstanceGroups(names);
     }
 }

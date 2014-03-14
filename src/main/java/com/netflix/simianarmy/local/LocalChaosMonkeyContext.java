@@ -35,7 +35,7 @@ public class LocalChaosMonkeyContext extends BasicChaosMonkeyContext {
         createClient();
         setChaosCrawler(new LocalChaosCrawler(localClient()));
     }
-    
+
     /**
      * Gets the local client.
      * @return the local client
@@ -50,7 +50,13 @@ public class LocalChaosMonkeyContext extends BasicChaosMonkeyContext {
      */
     @Override
     protected void createClient() {
-        setCloudClient(new LocalClient());
+        LocalContext localContext;
+        try {
+            localContext = new LocalContext(configuration());
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+        setCloudClient(new LocalClient(localContext));
     }
 
 }
