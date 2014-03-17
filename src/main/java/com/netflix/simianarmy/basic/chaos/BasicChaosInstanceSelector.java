@@ -78,6 +78,7 @@ public class BasicChaosInstanceSelector implements ChaosInstanceSelector {
     }
 
     private String selectOneInstance(InstanceGroup group, double probability) {
+        LOGGER.info("selecting one instance from instance group, probability = " + probability);
         Validate.isTrue(probability < 1);
         if (probability <= 0) {
             logger().info("Group {} [type {}] has disabled probability: {}",
@@ -86,7 +87,7 @@ public class BasicChaosInstanceSelector implements ChaosInstanceSelector {
         }
         double rand = Math.random();
         if (rand > probability || group.instances().isEmpty()) {
-            logger().info("Group {} [type {}] got lucky: {} > {}",
+            logger().info("Group {} [type {}] got lucky: {} > {}, empty group? " + group.instances().isEmpty(),
                     new Object[] {group.name(), group.type(), rand, probability});
             return null;
         }

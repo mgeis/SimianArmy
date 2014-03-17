@@ -56,8 +56,8 @@ public class BasicMonkeyServer extends HttpServlet {
      * Add the monkeys that will be run.
      */
     public void addMonkeysToRun() {
-        addMonkeyToRun(CHAOS, "Volume Tagging");
-        addMonkeyToRun(VOLUME_TAGGING, "Chaos");
+        addMonkeyToRun(CHAOS, "Chaos");
+        addMonkeyToRun(VOLUME_TAGGING, "Volume Tagging");
         addMonkeyToRun(CONFORMITY, "Conformity");
         addMonkeyToRun(JANITOR, "Janitor");
     }

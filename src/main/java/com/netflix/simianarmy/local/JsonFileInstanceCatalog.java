@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -15,11 +17,16 @@ import com.netflix.simianarmy.basic.chaos.BasicInstanceGroup;
 import com.netflix.simianarmy.chaos.ChaosCrawler.InstanceGroup;
 
 public class JsonFileInstanceCatalog implements InstanceCatalog {
+    /** The Constant LOGGER. */
+    private static final Logger LOGGER = LoggerFactory.getLogger(JsonFileInstanceCatalog.class);
+    
     String configFile = "./instance_groups.json";
 
     public JsonFileInstanceCatalog(String configFile) {
         if (StringUtils.isNotBlank(configFile)) {
             this.configFile = configFile;
+            List<InstanceGroup> igs = instanceGroups();//do this just to check logs
+            //maybe cache it later
         }
     }
 
@@ -58,16 +65,19 @@ public class JsonFileInstanceCatalog implements InstanceCatalog {
         List<LocalInstanceGroup> localGroups = null;
         List<InstanceGroup> igs = Lists.newArrayList();
         try {
-            localGroups = mapper.readValue(new File(configFile), new TypeReference<List<LocalInstanceGroup>>() { } );
+            File instanceConfiguration = new File(configFile);
+            LOGGER.info(this.getClass().getName() + " reading instance file at " 
+                + instanceConfiguration.getCanonicalPath());
+            localGroups = mapper.readValue(instanceConfiguration, new TypeReference<List<LocalInstanceGroup>>() { });
 
             for (LocalInstanceGroup localGroup : localGroups) {
-                System.out.println("parsing local instance group " 
+                LOGGER.info("parsing local instance group "
                     + localGroup.getId() + " with " + localGroup.getInstances().size() + " instances");
                 BasicInstanceGroup big = new BasicInstanceGroup(
                     localGroup.getId(), LocalChaosCrawler.Types.LOCAL, null);
                 igs.add(big);
                 for (LocalInstance localInstance : localGroup.getInstances()) {
-                    System.out.println("parsing local instance " + localInstance.getId() 
+                    LOGGER.info("parsing local instance " + localInstance.getId()
                         + " at " + localInstance.getHostName());
                     big.addInstance(localInstance.getId());
                 }

@@ -27,6 +27,7 @@ public class LocalClient implements CloudClient {
     public LocalClient(LocalContext localContext) {
         super();
         catalog = factory(localContext.instanceCatalogClass, localContext.getInstanceCatalogLocation());
+        LOGGER.info("Created catalog: " + catalog.getClass().getName());
     }
 
     public <T extends InstanceCatalog> T factory(Class<T> catalogClass, String location) {
@@ -43,8 +44,8 @@ public class LocalClient implements CloudClient {
                     continue;
                 }
                 @SuppressWarnings("unchecked")
-                T catalog = (T) ctor.newInstance(location);
-                return catalog;
+                T cat = (T) ctor.newInstance(location);
+                return cat;
             }
         } catch (Exception e) {
             LOGGER.error("monkeyFactory error, cannot make instance catalog from " + catalogClass.getName() + " with "
@@ -57,6 +58,7 @@ public class LocalClient implements CloudClient {
 
     @Override
     public void terminateInstance(String instanceId) {
+        LOGGER.info("Executing takedown of instance " + instanceId);
         // TODO IMPLEMENT THIS
     }
 
