@@ -130,7 +130,7 @@ public class AWSClient implements CloudClient {
      *
      * <p>
      * If credentials are provided explicitly, use
-     * {@link com.netflix.simianarmy.basic.BasicSimianArmyContext#exportCredentials(String, String)}
+     * {@link com.netflix.simianarmy.aws.AWSContext#exportCredentials(String, String)}
      * which will set them as System properties used by each AWS SDK call.
      * </p>
      *
@@ -145,7 +145,7 @@ public class AWSClient implements CloudClient {
      *            the region
      * @see com.amazonaws.auth.DefaultAWSCredentialsProviderChain
      * @see com.amazonaws.auth.InstanceProfileCredentialsProvider
-     * @see com.netflix.simianarmy.basic.BasicSimianArmyContext#exportCredentials(String, String)
+     * @see com.netflix.simianarmy.aws.AWSContext#exportCredentials(String, String)
      */
     public AWSClient(String region) {
         this.region = region;
