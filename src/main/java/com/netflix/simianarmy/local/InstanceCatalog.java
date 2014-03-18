@@ -10,6 +10,9 @@ import com.netflix.simianarmy.chaos.ChaosCrawler.InstanceGroup;
  */
 public interface InstanceCatalog {
 
+    /**Returns info for all groups of instances visible to the SimianArmy.
+     * @return List of instance groups, each of which has a list of LocalInstance
+     */
     List<InstanceGroup> instanceGroups();
 
 }
