@@ -55,7 +55,9 @@ public class AWSChaosMonkeyContext extends BasicChaosMonkeyContext {
 
     /** Creates the recorder that logs events.  Can be overridden by subclass.
      * Default behavior is to look at the property file.
-     * If nothing is specified, use the SimpleDBRecorder.
+     * If nothing is specified, use the SimpleDBRecorder and write to the SimpleDB
+     * domain specified by the simianarmy.recorder.sdb.domain property (or if none
+     * is provided, to "SIMIAN_ARMY").
      */
 
     @Override
