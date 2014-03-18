@@ -18,6 +18,7 @@
 package com.netflix.simianarmy.basic.janitor;
 
 import com.google.common.collect.Lists;
+import com.netflix.simianarmy.aws.AWSContext;
 import com.netflix.simianarmy.aws.janitor.VolumeTaggingMonkey;
 import com.netflix.simianarmy.basic.BasicSimianArmyContext;
 import com.netflix.simianarmy.client.aws.AWSClient;
@@ -29,6 +30,8 @@ import java.util.Collection;
  */
 public class BasicVolumeTaggingMonkeyContext extends BasicSimianArmyContext implements VolumeTaggingMonkey.Context {
 
+    private final AWSContext awsContext;
+
     private final Collection<AWSClient> awsClients = Lists.newArrayList();
 
     /**
@@ -36,14 +39,36 @@ public class BasicVolumeTaggingMonkeyContext extends BasicSimianArmyContext impl
      */
     public BasicVolumeTaggingMonkeyContext() {
         super("simianarmy.properties", "client.properties", "volumeTagging.properties");
-        for (String r : StringUtils.split(region(), ",")) {
+        awsContext = new AWSContext(configuration());
+        for (String r : StringUtils.split(awsContext.region(), ",")) {
             createClient(r);
             awsClients.add(awsClient());
         }
     }
 
+    /**
+     * Gets the AWS client.
+     * @return the AWS client
+     */
+    public AWSClient awsClient() {
+        return (AWSClient) cloudClient();
+    }
+
     @Override
     public Collection<AWSClient> awsClients() {
         return awsClients;
+    }
+
+    /** Creates an aws client for the given region.
+     * @param region
+     */
+    protected void createClient(String region) {
+        setCloudClient(new AWSClient(region, awsContext.getAwsCredentialsProvider()));
+    }
+
+    @Override
+    protected void createClient() {
+        throw new UnsupportedOperationException("createClient no-arg method not supported"
+            + " by BasicVolumeTaggingMonkeyContext, as it uses multiple clould clients");
     }
 }
