@@ -20,6 +20,9 @@
 
 package com.netflix.simianarmy.aws.janitor.rule.asg;
 
+import static org.joda.time.DateTimeConstants.MILLIS_PER_DAY;
+import static org.joda.time.DateTimeConstants.MILLIS_PER_HOUR;
+
 import java.util.Date;
 
 import org.joda.time.DateTime;
@@ -186,9 +189,15 @@ public class TestSuspendedASGRule {
         new SuspendedASGRule(null, 3, 2, null);
     }
 
-    /** Verify that the termination date is roughly rentionDays from now **/
+    /** Verify that the termination date is roughly retentionDays from now **/
     private void verifyTerminationTime(Resource resource, int retentionDays, DateTime now) {
-        long days = (resource.getExpectedTerminationTime().getTime() - now.getMillis()) / (24 * 60 * 60 * 1000);
-        Assert.assertEquals(days, retentionDays);
+        long timeDifference = (resource.getExpectedTerminationTime().getTime() - now.getMillis());
+        //use floating point, allow for a one hour diff on either side due to DST cutover
+        double retentionMillis = (double) retentionDays * MILLIS_PER_DAY;
+        double actualTerminationDays = (double) timeDifference / (double) MILLIS_PER_DAY;
+        double allowableLowerBound = (retentionMillis - (double) MILLIS_PER_HOUR) / (double) MILLIS_PER_DAY;
+        double allowableUpperBound = (retentionMillis + (double) MILLIS_PER_HOUR) / (double) MILLIS_PER_DAY;
+
+        Assert.assertTrue(allowableLowerBound <= actualTerminationDays && actualTerminationDays <= allowableUpperBound);
     }
 }
