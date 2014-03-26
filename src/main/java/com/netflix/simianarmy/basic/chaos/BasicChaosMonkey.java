@@ -58,6 +58,7 @@ import com.netflix.simianarmy.chaos.NetworkLatencyChaosType;
 import com.netflix.simianarmy.chaos.NetworkLossChaosType;
 import com.netflix.simianarmy.chaos.NullRouteChaosType;
 import com.netflix.simianarmy.chaos.ShutdownInstanceChaosType;
+import com.netflix.simianarmy.chaos.GlobalSshConfig;
 import com.netflix.simianarmy.chaos.SshConfig;
 
 /**
@@ -72,7 +73,7 @@ public class BasicChaosMonkey extends ChaosMonkey {
     private static final String NS = "simianarmy.chaos.";
 
     /** The cfg. */
-    private final MonkeyConfiguration cfg;
+    protected final MonkeyConfiguration cfg;
 
     /** The runs per day. */
     private final long runsPerDay;
@@ -86,7 +87,7 @@ public class BasicChaosMonkey extends ChaosMonkey {
     // the value below is used as the termination probability.
     private static final double DEFAULT_MANDATORY_TERMINATION_PROBABILITY = 0.5;
 
-    private final List<ChaosType> allChaosTypes;
+    protected final List<ChaosType> allChaosTypes;
 
     /**
      * Instantiates a new basic chaos monkey.
@@ -105,21 +106,21 @@ public class BasicChaosMonkey extends ChaosMonkey {
         close.set(Calendar.HOUR, monkeyCalendar.closeHour());
 
         allChaosTypes = Lists.newArrayList();
-        allChaosTypes.add(new ShutdownInstanceChaosType(cfg));
-        allChaosTypes.add(new BlockAllNetworkTrafficChaosType(cfg));
-        allChaosTypes.add(new DetachVolumesChaosType(cfg));
-        allChaosTypes.add(new BurnCpuChaosType(cfg));
-        allChaosTypes.add(new BurnIoChaosType(cfg));
-        allChaosTypes.add(new KillProcessesChaosType(cfg));
-        allChaosTypes.add(new NullRouteChaosType(cfg));
-        allChaosTypes.add(new FailEc2ChaosType(cfg));
-        allChaosTypes.add(new FailDnsChaosType(cfg));
-        allChaosTypes.add(new FailDynamoDbChaosType(cfg));
-        allChaosTypes.add(new FailS3ChaosType(cfg));
-        allChaosTypes.add(new FillDiskChaosType(cfg));
-        allChaosTypes.add(new NetworkCorruptionChaosType(cfg));
-        allChaosTypes.add(new NetworkLatencyChaosType(cfg));
-        allChaosTypes.add(new NetworkLossChaosType(cfg));
+        addChaosType(new ShutdownInstanceChaosType(cfg));
+        addChaosType(new BlockAllNetworkTrafficChaosType(cfg));
+        addChaosType(new DetachVolumesChaosType(cfg));
+        addChaosType(new BurnCpuChaosType(cfg));
+        addChaosType(new BurnIoChaosType(cfg));
+        addChaosType(new KillProcessesChaosType(cfg));
+        addChaosType(new NullRouteChaosType(cfg));
+        addChaosType(new FailEc2ChaosType(cfg));
+        addChaosType(new FailDnsChaosType(cfg));
+        addChaosType(new FailDynamoDbChaosType(cfg));
+        addChaosType(new FailS3ChaosType(cfg));
+        addChaosType(new FillDiskChaosType(cfg));
+        addChaosType(new NetworkCorruptionChaosType(cfg));
+        addChaosType(new NetworkLatencyChaosType(cfg));
+        addChaosType(new NetworkLossChaosType(cfg));
 
         TimeUnit freqUnit = ctx.scheduler().frequencyUnit();
         if (TimeUnit.DAYS == freqUnit) {
@@ -128,6 +129,10 @@ public class BasicChaosMonkey extends ChaosMonkey {
             long units = freqUnit.convert(close.getTimeInMillis() - open.getTimeInMillis(), TimeUnit.MILLISECONDS);
             runsPerDay = units / ctx.scheduler().frequency();
         }
+    }
+    
+    private void addChaosType(ChaosType chaos) {
+        allChaosTypes.add(chaos);
     }
 
     /** {@inheritDoc} */
@@ -160,9 +165,7 @@ public class BasicChaosMonkey extends ChaosMonkey {
 
     private ChaosType pickChaosType(CloudClient cloudClient, String instanceId) {
         Random random = new Random();
-
-        SshConfig sshConfig = new SshConfig(cfg);
-        ChaosInstance instance = new ChaosInstance(cloudClient, instanceId, sshConfig);
+        ChaosInstance instance = getChaosInstance(cloudClient, instanceId);
 
         List<ChaosType> applicable = Lists.newArrayList();
         for (ChaosType chaosType : allChaosTypes) {
@@ -177,6 +180,12 @@ public class BasicChaosMonkey extends ChaosMonkey {
 
         int index = random.nextInt(applicable.size());
         return applicable.get(index);
+    }
+    
+    protected ChaosInstance getChaosInstance(CloudClient cloudClient, String instanceId) {
+        SshConfig sshConfig = new GlobalSshConfig(cfg);
+        ChaosInstance instance = new ChaosInstance(cloudClient, instanceId, sshConfig);
+        return instance;
     }
 
     @Override
@@ -389,8 +398,7 @@ public class BasicChaosMonkey extends ChaosMonkey {
             try {
                 Event evt = recordTermination(group, inst, chaosType);
                 sendTerminationNotification(group, inst, chaosType);
-                SshConfig sshConfig = new SshConfig(cfg);
-                ChaosInstance chaosInstance = new ChaosInstance(context().cloudClient(), inst, sshConfig);
+                ChaosInstance chaosInstance = getChaosInstance(context().cloudClient(), inst);
                 chaosType.apply(chaosInstance);
                 LOGGER.info("Terminated {} from group {} [{}] with {}",
                         new Object[]{inst, group.name(), group.type(), chaosType.getKey() });

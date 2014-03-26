@@ -1,3 +1,20 @@
+/*
+ *
+ *  Copyright 2014 Salesforce.com, Inc.
+ *
+ *     Licensed under the Apache License, Version 2.0 (the "License");
+ *     you may not use this file except in compliance with the License.
+ *     You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *     Unless required by applicable law or agreed to in writing, software
+ *     distributed under the License is distributed on an "AS IS" BASIS,
+ *     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *     See the License for the specific language governing permissions and
+ *     limitations under the License.
+ *
+ */
 package com.netflix.simianarmy.local;
 
 import java.net.InetAddress;
@@ -7,9 +24,9 @@ public class LocalInstance {
     private String id;
     private InetAddress address;
     private String username;
-    private String userpass;
+    private String password; //used for either username or to unlock private key
     private String privateKeyFilePath;
-    private String privateKeyFilePassword;
+    private Integer sshPort = new Integer(22);
 
     public LocalInstance() {
         super();
@@ -19,6 +36,13 @@ public class LocalInstance {
         this();
         this.id = id;
         this.address = InetAddress.getByName(ipOrHostname);
+    }
+    
+    public LocalInstance(String id, String ipOrHostname, Integer sshPort) throws UnknownHostException {
+        this(id, ipOrHostname);
+        if (sshPort != null) {
+            this.sshPort = sshPort;
+        }
     }
 
     public String getId() {
@@ -61,12 +85,12 @@ public class LocalInstance {
         this.username = username;
     }
 
-    public String getUserpass() {
-        return userpass;
+    public String getPassword() {
+        return password;
     }
 
-    public void setUserpass(String userpass) {
-        this.userpass = userpass;
+    public void setPassword(String password) {
+        this.password = password;
     }
 
     public String getPrivateKeyFilePath() {
@@ -77,12 +101,12 @@ public class LocalInstance {
         this.privateKeyFilePath = privateKeyFilePath;
     }
 
-    public String getPrivateKeyFilePassword() {
-        return privateKeyFilePassword;
+   public Integer getSshPort() {
+        return sshPort;
     }
 
-    public void setPrivateKeyFilePassword(String privateKeyFilePassword) {
-        this.privateKeyFilePassword = privateKeyFilePassword;
+    public void setSshPort(Integer sshPort) {
+        this.sshPort = sshPort;
     }
 
 }

@@ -20,6 +20,7 @@ package com.netflix.simianarmy.chaos;
 import java.io.IOException;
 import java.net.URL;
 import org.jclouds.compute.domain.ExecResponse;
+import org.jclouds.domain.LoginCredentials;
 import org.jclouds.ssh.SshClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -85,9 +86,18 @@ public abstract class ScriptChaosType extends ChaosType {
         }
 
         ssh.put("/tmp/" + filename, script);
-        ExecResponse response = ssh.exec("/bin/bash /tmp/" + filename);
+        
+        String commandToExec = "/bin/bash /tmp/" + filename;
+        LoginCredentials credentials = instance.getSshConfig().getCredentials();
+        if (credentials.shouldAuthenticateSudo()) {
+            commandToExec = String.format("echo '%s' | sudo -S %s", credentials.getPassword(), commandToExec);
+        }
+        
+        ExecResponse response = ssh.exec(commandToExec);
         if (response.getExitStatus() != 0) {
             LOGGER.warn("Got non-zero output from running script: {}", response);
+        } else {
+            LOGGER.info("Got zero output from running script: {}", response);
         }
         ssh.disconnect();
     }

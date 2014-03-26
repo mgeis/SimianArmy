@@ -14,5 +14,9 @@ public interface InstanceCatalog {
      * @return List of instance groups, each of which has a list of LocalInstance
      */
     List<InstanceGroup> instanceGroups();
+    
+    List<LocalInstanceGroup> localInstanceGroups();
+    
+    LocalInstance getLocalInstanceFromId(String id);
 
 }

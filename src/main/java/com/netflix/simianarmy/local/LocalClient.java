@@ -4,10 +4,12 @@ import java.lang.reflect.Constructor;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang.StringUtils;
 import org.jclouds.compute.ComputeService;
 import org.jclouds.domain.LoginCredentials;
 import org.jclouds.http.handlers.BackoffLimitedRetryHandler;
 import org.jclouds.proxy.ProxyConfig;
+import org.jclouds.proxy.internal.GuiceProxyConfig;
 import org.jclouds.ssh.SshClient;
 import org.jclouds.ssh.jsch.JschSshClient;
 import org.slf4j.Logger;
@@ -33,7 +35,7 @@ public class LocalClient implements CloudClient {
     public <T extends InstanceCatalog> T factory(Class<T> catalogClass, String location) {
         try {
             if (location == null) {
-                // assume InstanceCatalog class has has void ctor
+                // assume InstanceCatalog class has a void constructor
                 return catalogClass.newInstance();
             }
 
@@ -47,10 +49,16 @@ public class LocalClient implements CloudClient {
                 T cat = (T) ctor.newInstance(location);
                 return cat;
             }
-        } catch (Exception e) {
-            LOGGER.error("monkeyFactory error, cannot make instance catalog from " + catalogClass.getName() + " with "
-                    + (location == null ? null : location), e);
-        }
+        } catch (InstantiationException e) {
+            LOGGER.error("local client factory error instantiating " + catalogClass.getName() + " from "
+                + location, e);
+        } catch (IllegalAccessException e) {
+            LOGGER.error("access error instantiating " + catalogClass.getName() + " from "
+                + location, e);
+        } catch (Exception e) { //this is the fall-through for undeclared exceptions that may pop up
+            LOGGER.error("local client factory error, cannot make instance catalog from " + catalogClass.getName() + " with "
+                + location, e);
+        } 
 
         return null;
     }
@@ -58,25 +66,59 @@ public class LocalClient implements CloudClient {
 
     @Override
     public void terminateInstance(String instanceId) {
-        LOGGER.info("Executing takedown of instance " + instanceId);
-        // TODO IMPLEMENT THIS
+        throw new UnsupportedOperationException("LocalClient does not directly terminate instance: uses script");
+        // TODO note that with statically defined resources,
+        // they may have previously been terminated and therefore "immune" to further attack
+    }
+    
+    protected LoginCredentials getLoginForInstance(LocalInstance instance){
+        LoginCredentials.Builder builder = LoginCredentials.builder();
+        builder.user(instance.getUsername()).authenticateSudo(true);
+        if (StringUtils.isNotEmpty(instance.getPrivateKeyFilePath())) {
+            builder.privateKey(instance.getPrivateKeyFilePath());
+            if (StringUtils.isNotEmpty(instance.getPassword())) {
+                builder.password(instance.getPassword());
+            } else {
+                builder.noPassword();
+            }
+        } else {
+            builder.noPrivateKey();
+            builder.password(instance.getPassword());
+        }
+        return builder.build();
     }
 
     @Override
     public SshClient connectSsh(String instanceId, LoginCredentials credentials) {
-        // TODO IMPLEMENT THIS, but maybe not as jclouds ssh.  Nice to have,
-        //as it's a clean abstraction, but that might not be possible.  need to research
-        //instance id can be an id of an object that wraps metadata about a server
-
-        ProxyConfig pc = null;
-        BackoffLimitedRetryHandler blrh = null;
-        HostAndPort hap = HostAndPort.fromString("");//TODO fill in hostname, port here
-        LoginCredentials lc = LoginCredentials.builder().user("sfdc_ops").noPassword().privateKey("").build();
-        SshClient ssh = new JschSshClient(pc, blrh, hap, lc, 3000);
+        ProxyConfig pc = new GuiceProxyConfig();
+        BackoffLimitedRetryHandler blrh = new BackoffLimitedRetryHandler();
+        LocalInstance localInstance = lookupLocalInstance(instanceId);
+        HostAndPort hap = HostAndPort.fromParts(localInstance.getHostName(), localInstance.getSshPort());
+        SshClient ssh = new JschSshClient(pc, blrh, hap, credentials, 3000);
         ssh.connect();
 
         return ssh;
     }
+    
+    protected LocalInstance lookupLocalInstance(String id) {
+        return catalog.getLocalInstanceFromId(id);
+    }
+    
+//    public static void main(String[] args) {
+//        ProxyConfig pc = new GuiceProxyConfig();
+//        BackoffLimitedRetryHandler blrh = new BackoffLimitedRetryHandler();
+//        String user = "mgeis";
+////        String pass = "";
+//        String pass = "";
+//        HostAndPort hap = HostAndPort.fromString("localhost:22");//TODO fill in hostname, port here
+//        LoginCredentials lc = LoginCredentials.builder().user(user).password(pass).noPrivateKey().build();
+//        SshClient ssh = new JschSshClient(pc, blrh, hap, lc, 3000);
+//        ssh.connect();
+//        
+//        ExecResponse er = ssh.exec("ls -l");
+//        String out = er.getOutput();
+//        System.out.println(out);
+//    }
 
     /**
      * Describe auto scaling groups.
@@ -99,11 +141,6 @@ public class LocalClient implements CloudClient {
         } else {
             LOGGER.info(String.format("Getting auto-scaling groups for %d names.", names.length));
         }
-
-        //now query the instance catalog
-        //interface instance catalog,
-        //jsonfileinstancecatalog, jsonrestfulcatalog
-
         List<InstanceGroup> isgs = catalog.instanceGroups();
         LOGGER.info(String.format("Got %d instance groups.", isgs.size()));
         return isgs;
