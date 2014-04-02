@@ -29,8 +29,14 @@ import com.netflix.simianarmy.MonkeyConfiguration;
 public class LocalContext {
     private static final Logger LOGGER = LoggerFactory.getLogger(LocalContext.class);
 
-    Class<? extends InstanceCatalog> instanceCatalogClass;
-    String instanceCatalogLocation;
+    /** The class that will provide the instance catalog for the local context.
+     */
+    private Class<? extends InstanceCatalog> instanceCatalogClass;
+
+    /**Specific data about where to find the data for the catalog.
+     * Used to initialize the catalog instance.
+     */
+    private String instanceCatalogLocation;
 
     /** Constructor.
      * @param config

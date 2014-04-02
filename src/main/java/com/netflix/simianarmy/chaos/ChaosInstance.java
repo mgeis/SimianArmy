@@ -52,9 +52,9 @@ public class ChaosInstance {
     }
 
     /**
-     * Gets the {@link GlobalSshConfig} used to SSH to the instance.
+     * Gets the {@link SshConfig} used to SSH to the instance.
      *
-     * @return the {@link GlobalSshConfig}
+     * @return the {@link SshConfig}
      */
     public SshConfig getSshConfig() {
         return sshConfig;
@@ -124,5 +124,5 @@ public class ChaosInstance {
 
         return ssh;
     }
-    
+
 }

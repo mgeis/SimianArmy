@@ -188,7 +188,7 @@ public class TestBasicChaosMonkey {
         Assert.assertEquals(selectedOn.get(3).name(), "name3");
         Assert.assertEquals(terminated.size(), 0);
     }
-    
+
     @Test
     public void testFullProbability() {
         TestChaosMonkeyContext ctx = new TestChaosMonkeyContext("fullProbability.properties") {
@@ -216,8 +216,7 @@ public class TestBasicChaosMonkey {
                         Assert.assertEquals(monkey.type().name(), monkey.type().name(), "stopping monkey");
                     }
                 };
-            }
-            ;
+            };
         };
         ChaosMonkey chaos = new BasicChaosMonkey(ctx);
         chaos.start();

@@ -17,41 +17,65 @@
  */
 package com.netflix.simianarmy.local;
 
-import java.net.UnknownHostException;
 import java.util.List;
 
 import com.google.common.collect.Lists;
 
+/**Information about a group of instances used by a local cloud.
+ * An example of this would be a cluster of application servers, cache
+ * servers, or Oracle RAC nodes.
+ * @author mgeis
+ */
 public class LocalInstanceGroup {
     private String id;
     private List<LocalInstance> instances;
 
+    /**Default constructor.
+     */
     public LocalInstanceGroup() {
         super();
         instances = Lists.newArrayList();
     }
 
-    public LocalInstanceGroup(String id) throws UnknownHostException {
+    /**Constructor that takes an id for the group.
+     * @param id (example : "appservers")
+     */
+    public LocalInstanceGroup(String id) {
         this();
         this.id = id;
     }
 
+    /**Accessor for id of the group.
+     * @return the id of the group
+     */
     public String getId() {
         return id;
     }
 
+    /**Mutator for id of the group.
+     * @param id
+     */
     public void setId(String id) {
         this.id = id;
     }
 
+    /**Get all data for instances in the group.
+     * @return A list of LocalInstance
+     */
     public List<LocalInstance> getInstances() {
         return instances;
     }
 
+    /**Set all instances for the group.
+     * @param instances
+     */
     public void setInstances(List<LocalInstance> instances) {
         this.instances = instances;
     }
 
+    /**Add a single LocalInstance to the group.
+     * @param instance
+     */
     public void addInstance(LocalInstance instance) {
         this.instances.add(instance);
     }

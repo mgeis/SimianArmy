@@ -22,7 +22,6 @@ import java.lang.reflect.Constructor;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.lang.StringUtils;
 import org.jclouds.compute.ComputeService;
 import org.jclouds.domain.LoginCredentials;
 import org.jclouds.http.handlers.BackoffLimitedRetryHandler;
@@ -37,19 +36,35 @@ import com.google.common.net.HostAndPort;
 import com.netflix.simianarmy.CloudClient;
 import com.netflix.simianarmy.chaos.ChaosCrawler.InstanceGroup;
 
+/**A cloud client used for environments that constitute a "local cloud" (i.e., local servers
+ * clustered behind a load balancer).
+ * @author mgeis
+ *
+ */
 public class LocalClient implements CloudClient {
 
     /** The Constant LOGGER. */
     private static final Logger LOGGER = LoggerFactory.getLogger(LocalClient.class);
 
+    /**The catalog of all machines visible to the client.
+     */
     private InstanceCatalog catalog;
 
+    /**Constructor.
+     * @param localContext
+     */
     public LocalClient(LocalContext localContext) {
         super();
-        catalog = factory(localContext.instanceCatalogClass, localContext.getInstanceCatalogLocation());
+        //create the catalog using its type and the location of its source data
+        catalog = factory(localContext.getInstanceCatalogClass(), localContext.getInstanceCatalogLocation());
         LOGGER.info("Created catalog: " + catalog.getClass().getName());
     }
 
+    /**Creates an instance of InstanceCatalog (exact flavor depends on how app is configured).
+     * @param catalogClass
+     * @param location
+     * @return InstanceCatalog for use by LocalClient.
+     */
     public <T extends InstanceCatalog> T factory(Class<T> catalogClass, String location) {
         try {
             if (location == null) {
@@ -74,36 +89,23 @@ public class LocalClient implements CloudClient {
             LOGGER.error("access error instantiating " + catalogClass.getName() + " from "
                 + location, e);
         } catch (Exception e) { //this is the fall-through for undeclared exceptions that may pop up
-            LOGGER.error("local client factory error, cannot make instance catalog from " + catalogClass.getName() + " with "
-                + location, e);
-        } 
+            LOGGER.error("local client factory error, cannot make instance catalog from " + catalogClass.getName()
+                + " with " + location, e);
+        }
 
         return null;
     }
 
 
+    /** Should never be invoked, exists for interface compliance.
+     * @throws UnsupportedOperationException if it is ever invoked
+     * @see com.netflix.simianarmy.CloudClient#terminateInstance(java.lang.String)
+     */
     @Override
     public void terminateInstance(String instanceId) {
         throw new UnsupportedOperationException("LocalClient does not directly terminate instance: uses script");
         // TODO note that with statically defined resources,
         // they may have previously been terminated and therefore "immune" to further attack
-    }
-    
-    protected LoginCredentials getLoginForInstance(LocalInstance instance){
-        LoginCredentials.Builder builder = LoginCredentials.builder();
-        builder.user(instance.getUsername()).authenticateSudo(true);
-        if (StringUtils.isNotEmpty(instance.getPrivateKeyFilePath())) {
-            builder.privateKey(instance.getPrivateKeyFilePath());
-            if (StringUtils.isNotEmpty(instance.getPassword())) {
-                builder.password(instance.getPassword());
-            } else {
-                builder.noPassword();
-            }
-        } else {
-            builder.noPrivateKey();
-            builder.password(instance.getPassword());
-        }
-        return builder.build();
     }
 
     @Override
@@ -117,26 +119,14 @@ public class LocalClient implements CloudClient {
 
         return ssh;
     }
-    
+
+    /**Get all information about an instance from its id.
+     * @param id
+     * @return The instance that corresponds to that id.
+     */
     protected LocalInstance lookupLocalInstance(String id) {
         return catalog.getLocalInstanceFromId(id);
     }
-    
-//    public static void main(String[] args) {
-//        ProxyConfig pc = new GuiceProxyConfig();
-//        BackoffLimitedRetryHandler blrh = new BackoffLimitedRetryHandler();
-//        String user = "mgeis";
-////        String pass = "";
-//        String pass = "";
-//        HostAndPort hap = HostAndPort.fromString("localhost:22");//TODO fill in hostname, port here
-//        LoginCredentials lc = LoginCredentials.builder().user(user).password(pass).noPrivateKey().build();
-//        SshClient ssh = new JschSshClient(pc, blrh, hap, lc, 3000);
-//        ssh.connect();
-//        
-//        ExecResponse er = ssh.exec("ls -l");
-//        String out = er.getOutput();
-//        System.out.println(out);
-//    }
 
     /**
      * Describe auto scaling groups.

@@ -46,37 +46,31 @@ public class LocalChaosMonkey extends BasicChaosMonkey {
      */
     public LocalChaosMonkey(ChaosMonkey.Context ctx) {
         super(ctx);
-        allChaosTypes.add(new ShutdownLocalInstanceChaosType(cfg));
+        getAllChaosTypes().add(new ShutdownLocalInstanceChaosType(getCfg()));
         //now remove the cloud-specific chaos types
-        for (Iterator<ChaosType> iterator = allChaosTypes.iterator(); iterator.hasNext();) {
+        for (Iterator<ChaosType> iterator = getAllChaosTypes().iterator(); iterator.hasNext();) {
+            //the types are not stored in a map, so we have to iterate across to find the one to remove
+            //maybe refactor chaos types into an enum or enum map.  Will refactor in a later rev.
             ChaosType chaosType = iterator.next();
             if (ShutdownInstanceChaosType.class == chaosType.getClass()) {
                 iterator.remove();
             }
         }
-        
+
     }
 
-        //TODO: if the chaos type is a script based one for a local machine, we
-        //will need to log in using more than just the standard SshConfig.
-        //we may need a beefed up version of ssh config
-        //at the very least we need something that goes beyond one-size-fits-all
-        
-        
-        //to create a global ssh config, we only need the global monkey configuration
-        //to create an instance-specific one, we need local instance info.
-        //because chaos instance is really just a wrapper, we may need to subclass it
-        //and specify the chaos instance class.
-        
-            
+    /** Get a ChaosInstance built with SSH connectivity to a local instance.
+     * @see com.netflix.simianarmy.basic.chaos.BasicChaosMonkey#getChaosInstance
+     * (com.netflix.simianarmy.CloudClient, java.lang.String)
+     */
     @Override
     protected ChaosInstance getChaosInstance(CloudClient cloudClient, String instanceId) {
-        LocalClient localClient = (LocalClient)cloudClient;
+        LocalClient localClient = (LocalClient) cloudClient;
         LocalInstance instance = localClient.lookupLocalInstance(instanceId);
         InstanceSshConfig sshConfig = new InstanceSshConfig(
-            cfg, instance.getUsername(), instance.getPassword(), instance.getPrivateKeyFilePath());
+            getCfg(), instance.getUsername(), instance.getPassword(), instance.getPrivateKeyFilePath());
         ChaosInstance chaosInstance = new ChaosInstance(context().cloudClient(), instanceId, sshConfig);
         return chaosInstance;
     }
-    
+
 }

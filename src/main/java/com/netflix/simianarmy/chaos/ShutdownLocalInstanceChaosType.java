@@ -26,8 +26,7 @@ public class ShutdownLocalInstanceChaosType extends ScriptChaosType {
     /**
      * Constructor.
      *
-     * @param config
-     *            Configuration to use
+     * @param config Configuration to use
      * @throws IOException
      */
     public ShutdownLocalInstanceChaosType(MonkeyConfiguration config) {

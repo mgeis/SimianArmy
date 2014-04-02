@@ -39,7 +39,7 @@ public class GlobalSshConfig implements SshConfig {
      * The SSH credentials to log on to an instance.
      */
     private final LoginCredentials sshCredentials;
-    
+
     /**
      * Constructor.
      *
@@ -52,14 +52,20 @@ public class GlobalSshConfig implements SshConfig {
 
         String sshKeyPath = config.getStrOrElse("simianarmy.chaos.ssh.key", null);
         String privateKey = getPrivateKeyContents(sshKeyPath);
-        
+
         if (privateKey == null) {
             this.sshCredentials = null;
         } else {
             this.sshCredentials = LoginCredentials.builder().user(sshUser).privateKey(privateKey).build();
         }
     }
-    
+
+    /**Get the contents of the file named by the sshKeyPath parameter.  Can be absolute path,
+     * or can start with "~/" to search in the user's home directory.
+     * @param sshKeyPath
+     * @throws IllegalStateException if the sshKeyPath file is not readable due to an IOException.
+     * @return String representing the contents of the private key file
+     */
     protected String getPrivateKeyContents(String sshKeyPath) {
         String privateKey = null;
         if (sshKeyPath != null) {
@@ -73,9 +79,9 @@ public class GlobalSshConfig implements SshConfig {
                     sshKeyPath = home + sshKeyPath.substring(2);
                 }
             }
-    
+
             LOGGER.debug("Reading SSH key from {}", sshKeyPath);
-    
+
             try {
                 privateKey = Files.toString(new File(sshKeyPath), Charsets.UTF_8);
             } catch (IOException e) {

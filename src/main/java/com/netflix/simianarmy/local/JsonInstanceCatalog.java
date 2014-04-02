@@ -38,25 +38,25 @@ import com.netflix.simianarmy.basic.chaos.BasicInstanceGroup;
 import com.netflix.simianarmy.chaos.ChaosCrawler.InstanceGroup;
 
 /** Consumes instance descriptions from JSON stream (file, URL, or classpath location).
- * 
+ *
  * File will look like this:
- * 
+ *
  * Notes:
  * 1.  Each instance group has an id and an array of instances.
  * 2.  Each instance must have an id, as well as an ipAddress or hostname.
  * 3.  The instance's sshPort is assumed to be 22, and is optional.
  * 4.  Login credentials must be provided.  This should be a user on the sudo-ers list
  *     and the credentials can be one of the following
- *         a) password 
- *         b) private-key file 
+ *         a) password
+ *         b) private-key file
  *         c) password-protected private key file
  * 5.  The id of a group is used in chaos.properties the same way as an ASG name is used
- *     for purposes of enabling a group for chaos.        
- * 
- * [    
+ *     for purposes of enabling a group for chaos.
+ *
+ * [
        {
            "id": "appServers",
-           "instances" : 
+           "instances" :
               [
                    {
                       "ipAddress": "127.0.0.2",
@@ -81,7 +81,7 @@ import com.netflix.simianarmy.chaos.ChaosCrawler.InstanceGroup;
         },
         {
            "id": "dbServers",
-           "instances" : 
+           "instances" :
               [
                    {
                       "ipAddress": "127.0.0.5",
@@ -92,24 +92,15 @@ import com.netflix.simianarmy.chaos.ChaosCrawler.InstanceGroup;
               ]
         }
     ]
- * 
- * 
+ *
+ *
  * @author mgeis
  *
  */
-//
-//thoughts here:
-//    regular simian army assumes there is ONE private key with a matching public
-//    key on ALL target machines, and that's for the root user.
-//    this may be tricky to arrange, if not impossible.
-
-
-
-
 public class JsonInstanceCatalog implements InstanceCatalog {
     /** The Constant LOGGER. */
     private static final Logger LOGGER = LoggerFactory.getLogger(JsonInstanceCatalog.class);
-    
+
     /** The default location.  Can be overridden. */
     private URL configLocation = null;
     private Map<String, LocalInstance> idToInstanceMap = Maps.newHashMap();
@@ -141,14 +132,14 @@ public class JsonInstanceCatalog implements InstanceCatalog {
             LOGGER.error("unable convert existing file " + configFile + " to URL", e);
             e.printStackTrace();
         }
-        if (configLocation == null) { 
+        if (configLocation == null) {
 //            this means file did not exist, and value was not resolvable as URL or classpath location
             LOGGER.error(configFile + " did not resolve to file, URL, or classpath location");
-            throw new RuntimeException("Instance Catalog at " + configFile 
-                + "could not be generated.  Specify using property simianarmy.client.local.catalog.location" );
+            throw new RuntimeException("Instance Catalog at " + configFile
+                + "could not be generated.  Specify using property simianarmy.client.local.catalog.location");
         }
     }
-    
+
     /** Constructs and validates a URL from a String.
      * @param proposedURL The URL to try
      * @return A URL with content at the other end, or null
@@ -167,7 +158,8 @@ public class JsonInstanceCatalog implements InstanceCatalog {
             return null;
         }
     }
-    
+
+    /** {@inheritDoc} */
     public List<LocalInstanceGroup> localInstanceGroups() {
         ObjectMapper mapper = new ObjectMapper();
         List<LocalInstanceGroup> localGroups = null;
@@ -184,15 +176,16 @@ public class JsonInstanceCatalog implements InstanceCatalog {
         return localGroups;
     }
 
+    /** {@inheritDoc} */
     @Override
     public List<InstanceGroup> instanceGroups() {
-        List<LocalInstanceGroup> localGroups = localInstanceGroups();
+        List<LocalInstanceGroup> localGroups = localInstanceGroups(); //rebuild the catalog, as it may change
         List<InstanceGroup> instanceGroups = Lists.newArrayList();
         if (localGroups == null) {
             return instanceGroups;
         }
-        
-        idToInstanceMap.clear();//TODO: think about if we need to synchronize this collection.  probably not
+
+        idToInstanceMap.clear(); //do not need to synchronize -- not used by multiple threads
         for (LocalInstanceGroup localGroup : localGroups) {
             LOGGER.debug("parsing local instance group "
                 + localGroup.getId() + " with " + localGroup.getInstances().size() + " instances");
@@ -209,6 +202,7 @@ public class JsonInstanceCatalog implements InstanceCatalog {
         return instanceGroups;
     }
 
+    /** {@inheritDoc} */
     @Override
     public LocalInstance getLocalInstanceFromId(String id) {
         return idToInstanceMap.get(id);

@@ -50,7 +50,7 @@ public abstract class ScriptChaosType extends ChaosType {
     }
 
     /**
-     * We can apply the strategy iff we can SSH to the instance.
+     * We can apply the strategy if we can SSH to the instance.
      */
     @Override
     public boolean canApply(ChaosInstance instance) {
@@ -86,13 +86,13 @@ public abstract class ScriptChaosType extends ChaosType {
         }
 
         ssh.put("/tmp/" + filename, script);
-        
+
         String commandToExec = "/bin/bash /tmp/" + filename;
         LoginCredentials credentials = instance.getSshConfig().getCredentials();
         if (credentials.shouldAuthenticateSudo()) {
             commandToExec = String.format("echo '%s' | sudo -S %s", credentials.getPassword(), commandToExec);
         }
-        
+
         ExecResponse response = ssh.exec(commandToExec);
         if (response.getExitStatus() != 0) {
             LOGGER.warn("Got non-zero output from running script: {}", response);

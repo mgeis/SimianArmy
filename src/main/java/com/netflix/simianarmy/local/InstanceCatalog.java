@@ -32,9 +32,16 @@ public interface InstanceCatalog {
      * @return List of instance groups, each of which has a list of LocalInstance
      */
     List<InstanceGroup> instanceGroups();
-    
+
+    /**Obtains a list of LocalInstanceGroups (in other words, ALL available info).
+     * @return list of LocalInstanceGroups
+     */
     List<LocalInstanceGroup> localInstanceGroups();
-    
+
+    /**Returns all instance information for the provided id.
+     * @param id The id of the instance
+     * @return All available info about the instance, wrapped in a LocalInstance
+     */
     LocalInstance getLocalInstanceFromId(String id);
 
 }

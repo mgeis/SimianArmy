@@ -20,6 +20,10 @@ package com.netflix.simianarmy.chaos;
 
 import org.jclouds.domain.LoginCredentials;
 
+/**Interface that contains all info necessary to make a SSH connection to
+ * a targetable instance.
+ * @author mgeis
+ */
 public interface SshConfig {
 
     /**
@@ -27,13 +31,13 @@ public interface SshConfig {
      *
      * @return configured SSH credentials
      */
-    public abstract LoginCredentials getCredentials();
+    LoginCredentials getCredentials();
 
     /**
      * Check if ssh is configured.
      *
      * @return true if credentials are configured
      */
-    public abstract boolean isEnabled();
+    boolean isEnabled();
 
 }

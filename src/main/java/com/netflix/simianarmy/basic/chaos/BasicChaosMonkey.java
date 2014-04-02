@@ -73,7 +73,7 @@ public class BasicChaosMonkey extends ChaosMonkey {
     private static final String NS = "simianarmy.chaos.";
 
     /** The cfg. */
-    protected final MonkeyConfiguration cfg;
+    private final MonkeyConfiguration cfg;
 
     /** The runs per day. */
     private final long runsPerDay;
@@ -87,7 +87,9 @@ public class BasicChaosMonkey extends ChaosMonkey {
     // the value below is used as the termination probability.
     private static final double DEFAULT_MANDATORY_TERMINATION_PROBABILITY = 0.5;
 
-    protected final List<ChaosType> allChaosTypes;
+    /**All types of chaos available to BasicChaosMonkey.
+     */
+    private final List<ChaosType> allChaosTypes;
 
     /**
      * Instantiates a new basic chaos monkey.
@@ -130,7 +132,10 @@ public class BasicChaosMonkey extends ChaosMonkey {
             runsPerDay = units / ctx.scheduler().frequency();
         }
     }
-    
+
+    /**Convenience method to add a chaos type to list of types this monkey can launch.
+     * @param chaos
+     */
     private void addChaosType(ChaosType chaos) {
         allChaosTypes.add(chaos);
     }
@@ -181,7 +186,13 @@ public class BasicChaosMonkey extends ChaosMonkey {
         int index = random.nextInt(applicable.size());
         return applicable.get(index);
     }
-    
+
+    /**Get the context for where and how the chaos will occur.  Overrideable, for example
+     * if the monkey uses a different type of SshConfig.
+     * @param cloudClient
+     * @param instanceId
+     * @return A chaos instance usable by a ChaosType to launch an attack
+     */
     protected ChaosInstance getChaosInstance(CloudClient cloudClient, String instanceId) {
         SshConfig sshConfig = new GlobalSshConfig(cfg);
         ChaosInstance instance = new ChaosInstance(cloudClient, instanceId, sshConfig);
@@ -478,5 +489,13 @@ public class BasicChaosMonkey extends ChaosMonkey {
     @Override
     public List<ChaosType> getChaosTypes() {
         return Lists.newArrayList(allChaosTypes);
+    }
+
+    public List<ChaosType> getAllChaosTypes() {
+        return allChaosTypes;
+    }
+
+    protected MonkeyConfiguration getCfg() {
+        return cfg;
     }
 }
