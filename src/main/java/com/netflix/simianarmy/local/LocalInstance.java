@@ -77,10 +77,16 @@ public class LocalInstance {
         this.id = id;
     }
 
+    /** Accessor for the address of the instance.
+     * @return the address
+     */
     public InetAddress getAddress() {
         return address;
     }
 
+    /** Mutator for the address of the instance.
+     * @param address
+     */
     public void setAddress(InetAddress address) {
         this.address = address;
     }
@@ -88,7 +94,7 @@ public class LocalInstance {
     /** Convenience method.  Under the hood, address construction can take either a hostname
      * or an IP address, but this method signature makes it very clear what is allowed.
      * @param hostname
-     * @throws UnknownHostException
+     * @throws UnknownHostException if no IP address for the host could be found.
      */
     public void setHostname(String hostname) throws UnknownHostException {
         address = InetAddress.getByName(hostname);
@@ -97,48 +103,78 @@ public class LocalInstance {
     /** Convenience method.  Under the hood, address construction can take either a hostname
      * or an IP address, but this method signature makes it very clear what is allowed.
      * @param ip
-     * @throws UnknownHostException
+     * @throws UnknownHostException if no IP address for the host could be found.
      */
     public void setIpAddress(String ip) throws UnknownHostException {
         setHostname(ip);
     }
 
+    /** Accessor for instance hostname.  Derived from reverse lookup or from explicitly provided hostname.
+     * @return
+     */
     public String getHostName() {
         return address.getHostName();
     }
 
+    /** Accessor for IP address (from explicitly provided IP or derived from provided hostname).
+     * @return
+     */
     public String getIpAddress() {
         return address.getHostAddress();
     }
 
+    /** Accessor for the username for the instance.
+     * @return the username used for login
+     */
     public String getUsername() {
         return username;
     }
 
+    /** Mutator for username to log in to instance.
+     * @param username
+     */
     public void setUsername(String username) {
         this.username = username;
     }
 
+    /** Accessor for the password of the instance's user or private key file.
+     * @return the user or key file password.
+     */
     public String getPassword() {
         return password;
     }
 
+    /** Mutator for instance password for user or private key file.
+     * @param password password for user or private key.
+     */
     public void setPassword(String password) {
         this.password = password;
     }
 
+    /** Accessor for the path to the private key of the instance.
+     * @return The relative or absolute path to the key (as defined by constructor or setter).  Can be null.
+     */
     public String getPrivateKeyFilePath() {
         return privateKeyFilePath;
     }
 
+    /** Mutator for path to private key file for instance login.
+     * @param privateKeyFilePath
+     */
     public void setPrivateKeyFilePath(String privateKeyFilePath) {
         this.privateKeyFilePath = privateKeyFilePath;
     }
 
-   public Integer getSshPort() {
+    /** Accessor for the ssh port of the instance.
+     * @return the ssh port number (22 is the default).
+     */
+    public Integer getSshPort() {
         return sshPort;
     }
 
+    /** Mutator for the ssh port of the instance.
+     * @param sshPort
+     */
     public void setSshPort(Integer sshPort) {
         this.sshPort = sshPort;
     }
