@@ -129,7 +129,7 @@ public class JsonInstanceCatalog implements InstanceCatalog {
                 configLocation = ClassLoader.getSystemResource(configFile);
             }
         } catch (IOException e) {
-            LOGGER.error("unable convert existing file " + configFile + " to URL", e);
+            LOGGER.error("unable to convert existing file " + configFile + " to URL", e);
             e.printStackTrace();
         }
         if (configLocation == null) {
